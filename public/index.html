@@ -1,116 +1,50 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>4.16 시민동행 캠페인 — 별빛걷기 [노란리본의 길]</title>
-<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@500;700&family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
-<script src="/socket.io/socket.io.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-<style>
-  :root { --night-deep: #0a0f24; --night-mid: #121a3a; --ribbon: #ffd54a; --ink: #ece7d8; --ink-dim: #9aa0bc; }
-  * { margin:0; padding:0; box-sizing:border-box; }
-  body {
-    background: #000;
-    color: var(--ink); font-family: "Noto Sans KR", sans-serif; overflow:hidden; height:100vh; display:flex; flex-direction:column;
-  }
-  header { padding: 14px 34px; display:flex; justify-content:space-between; align-items:center; z-index:10; background: rgba(10, 15, 36, 0.85); border-bottom: 1px solid rgba(255,213,74,0.2); }
-  .title-box h1 { font-family: "Noto Serif KR", serif; font-size: 22px; color: #ffffff; text-shadow: 0 2px 4px rgba(0,0,0,0.8); margin-bottom: 4px; }
-  .title-box h1 span { color: var(--ribbon); }
-  
-  .title-box p { 
-    color: #fff9d6; 
-    font-size: 14px; 
-    font-weight: 500;
-    letter-spacing: -0.02em;
-    text-shadow: 0 0 8px rgba(255, 213, 74, 0.6), 0 1px 3px rgba(0,0,0,0.9); 
-  }
-  
-  .right-controls { display:flex; gap: 16px; align-items: center; }
-  
-  .counter-box {
-    background: rgba(18, 26, 58, 0.85);
-    border: 1px solid rgba(255, 213, 74, 0.4);
-    padding: 10px 16px;
-    border-radius: 8px;
-    text-align: right;
-  }
-  .counter-box .label { font-size: 11px; color: var(--ink-dim); margin-bottom: 2px; }
-  .counter-box .count { font-size: 20px; font-weight: bold; color: var(--ribbon); }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>4.16 시민동행 캠페인 - 별빛걷기 [노란리본의 길]</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@500;700&family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <style>
+    :root { --night-deep: #0a0f24; --night-mid: #121826; --ribbon: #ffd54a; --ink: #ece7d8; --ink-dim: #9aa0bc; }
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { background:#000; color:var(--ink); font-family:'Noto Sans KR', sans-serif; overflow:hidden; height:100vh; display:flex; flex-direction:column; }
+    
+    header { padding: 14px 34px; display:flex; justify-content:space-between; align-items:center; z-index:10; background: rgba(10, 15, 36, 0.85); backdrop-filter: blur(8px); border-bottom: 1px solid rgba(255,213,74,0.2); }
+    .title-box h1 { font-family:'Noto Serif KR', serif; font-size:22px; color:#ffffff; text-shadow:0 2px 4px rgba(0,0,0,0.8); margin-bottom: 2px; }
+    .title-box h1 span { color: var(--ribbon); }
+    .title-box p { color: #fff9d6; font-size:14px; font-weight:500; letter-spacing:-0.02em; text-shadow:0 0 8px rgba(255, 213, 74, 0.6), 0 1px 3px rgba(0,0,0,0.9); }
 
-  .qr-container { background: rgba(255,255,255,0.92); padding: 6px; border-radius: 8px; text-align:center; color:#000; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
-  .qr-container p { font-size: 10px; margin-top: 2px; font-weight: bold; }
-  
-  main { flex:1; position:relative; overflow:hidden; background: #000; }
-  canvas#sky { position:absolute; inset:0; width:100%; height:100%; z-index: 1; }
+    .right-controls { display:flex; align-items:center; gap:20px; }
+    .counter-box { text-align:right; }
+    .counter-box .label { font-size:12px; color:var(--ink-dim); }
+    .counter-box .count { font-size:20px; font-weight:700; color:var(--ribbon); }
 
-  .delete-mode-badge {
-    position: absolute;
-    top: 16px;
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 30;
-    background: rgba(220, 38, 38, 0.9);
-    color: #fff;
-    padding: 8px 16px;
-    border-radius: 20px;
-    font-size: 13px;
-    font-weight: bold;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.5);
-    display: none;
-    pointer-events: none;
-  }
-  .delete-mode-badge.active { display: block; }
+    .qr-container { text-align:center; background:#fff; padding:6px; border-radius:8px; }
+    .qr-container p { font-size:10px; color:#000; font-weight:700; margin-top:2px; }
 
-  .bottom-controls {
-    position: absolute;
-    bottom: 16px;
-    right: 16px;
-    z-index: 20;
-    background: rgba(10, 15, 36, 0.85);
-    border: 1px solid rgba(255, 213, 74, 0.3);
-    padding: 8px 12px;
-    border-radius: 8px;
-    display: flex;
-    gap: 8px;
-    align-items: center;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.6);
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.4s ease;
-  }
+    main { flex:1; position:relative; width:100%; height:100%; overflow:hidden; }
+    canvas { width:100%; height:100%; display:block; }
 
-  .bottom-controls.visible {
-    opacity: 1;
-    pointer-events: auto;
-  }
+    .delete-mode-badge { display:none; position:absolute; top:20px; left:50%; transform:translateX(-50%); background:rgba(220, 38, 38, 0.9); color:#fff; padding:8px 16px; border-radius:20px; font-size:14px; font-weight:700; z-index:20; box-shadow:0 0 15px rgba(220,38,38,0.5); }
+    .delete-mode-badge.active { display:block; }
 
-  .target-select, .reset-btn, .fullscreen-btn, .delete-btn {
-    background: #121a3a;
-    color: var(--ink);
-    border: 1px solid var(--ink-dim);
-    border-radius: 4px;
-    padding: 6px 10px;
-    font-size: 12px;
-    cursor: pointer;
-    transition: background 0.2s;
-  }
-  .target-select:hover, .fullscreen-btn:hover { background: rgba(255, 213, 74, 0.2); }
-
-  .delete-btn { background: #4a2412; color: #ffb899; border-color: #884422; }
-  .delete-btn.active { background: #dc2626; color: #fff; border-color: #ef4444; }
-
-  .reset-btn { background: #3a1c1c; color: #ff9999; border-color: #773333; }
-  .reset-btn:hover { background: #552222; }
-</style>
+    .bottom-controls { position:absolute; bottom:20px; left:50%; transform:translateX(-50%); display:flex; gap:10px; background:rgba(10, 15, 36, 0.9); padding:10px 18px; border-radius:30px; border:1px solid rgba(255,213,74,0.3); opacity:0; transition:opacity 0.3s ease; z-index:20; }
+    .bottom-controls.visible { opacity:1; }
+    .bottom-controls button, .bottom-controls select { background:#121826; color:#fff; border:1px solid rgba(255,213,74,0.3); padding:6px 12px; border-radius:6px; font-size:13px; cursor:pointer; }
+    .bottom-controls button:hover { background:var(--ribbon); color:#000; }
+  </style>
 </head>
 <body>
+
   <header>
     <div class="title-box">
-      <h1>4.16 시민동행 캠페인 <span>— 별빛걷기 [노란리본의 길]</span></h1>
-      <p>QR코드를 스캔하여 노란리본의 길을 완성해주세요.</p>
+      <h1><span>4.16 시민동행 캠페인</span> - 별빛걷기 [노란리본의 길]</h1>
+      <p>당신의 별빛이 노란리본의 길을 밝혀주었습니다.</p>
     </div>
-    
+
     <div class="right-controls">
       <div class="counter-box">
         <div class="label">참여 현황</div>
@@ -124,7 +58,7 @@
     </div>
   </header>
 
-  <main>
+  <main id="mainContainer">
     <div id="deleteBadge" class="delete-mode-badge">⚠️ 관리자 삭제 모드 ON (삭제할 별을 클릭하세요 - [D] 키로 해제)</div>
     <canvas id="sky"></canvas>
 
@@ -153,30 +87,28 @@
   const deleteToggleBtn = document.getElementById('deleteToggleBtn');
   const deleteBadge = document.getElementById('deleteBadge');
   const bottomControls = document.getElementById('bottomControls');
+  const mainContainer = document.getElementById('mainContainer');
 
-  const mapImg = new Image();
-  mapImg.src = '/map.jpg';
+  // QR 코드 자동 생성
+  new QRCode(document.getElementById("qrcode"), {
+    text: `${window.location.origin}/mobile.html`,
+    width: 60, height: 60
+  });
 
-  const leftBannerImg = new Image();
-  leftBannerImg.src = '/left_banner.jpg';
+  const mapImg = new Image(); mapImg.src = '/map.jpg';
+  const leftBannerImg = new Image(); leftBannerImg.src = '/left_banner.jpg';
+  const rightBannerImg = new Image(); rightBannerImg.src = '/right_banner.jpg';
 
-  const rightBannerImg = new Image();
-  rightBannerImg.src = '/right_banner.jpg';
-
-  let W=0, H=0, dpr=1;
+  let W=0, H=0;
   let targetCount = parseInt(targetSelect.value, 10);
   let starsData = [];
-  let pathPoints = [];
   let isDeleteMode = false;
   let renderedStarCoords = [];
 
   const REF_W = 900;
   const REF_H = 1600;
 
-  const BAD_WORDS = [
-    '어묵', '창녕', '시체', '해상', '세월충', '좌빨', '북한',
-    '이재명', '납골당', '그만해', '그만', '공산당', '그만해라', '싫어', '싫다', '싫어요'
-  ];
+  const BAD_WORDS = ['어묵', '창녕', '시체', '해상', '세월충', '좌빨', '북한', '이재명', '납골당', '그만해', '그만', '공산당', '그만해라', '싫어', '싫다', '싫어요'];
 
   function filterBadWords(text) {
     if (!text) return '별';
@@ -187,354 +119,137 @@
     return text;
   }
 
+  // 노란리본 경로 SVG Path
   const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
   path.setAttribute('d', 'M 200,1190 C 270,1090 350,960 415,860 C 315,700 320,510 415,510 C 510,510 515,700 415,860 C 500,950 600,1020 700,1055');
+  const totalPathLen = path.getTotalLength();
+
+  function resizeCanvas() {
+    W = mainContainer.clientWidth;
+    H = mainContainer.clientHeight;
+    canvas.width = W;
+    canvas.height = H;
+  }
+  window.addEventListener('resize', resizeCanvas);
+  resizeCanvas();
+
+  // 소켓 데이터 수신 (모바일 연동 핵심)
+  socket.on('initStars', (stars) => {
+    starsData = stars.map(s => ({ id: s.id || Math.random(), name: filterBadWords(s.name) }));
+    updateCount();
+  });
+
+  socket.on('newStar', (star) => {
+    starsData.push({ id: star.id || Math.random(), name: filterBadWords(star.name) });
+    updateCount();
+  });
+
+  socket.on('resetStars', () => {
+    starsData = [];
+    updateCount();
+  });
+
+  function updateCount() {
+    currentCountEl.textContent = starsData.length;
+  }
+
+  function draw() {
+    ctx.clearRect(0, 0, W, H);
+
+    if (mapImg.complete && mapImg.naturalWidth !== 0) {
+      ctx.drawImage(mapImg, 0, 0, W, H);
+    } else {
+      ctx.fillStyle = '#0a0f24';
+      ctx.fillRect(0, 0, W, H);
+    }
+
+    renderedStarCoords = [];
+
+    starsData.forEach((star, index) => {
+      const progress = (index % targetCount) / targetCount;
+      const pt = path.getPointAtLength(progress * totalPathLen);
+
+      const x = (pt.x / REF_W) * W;
+      const y = (pt.y / REF_H) * H;
+
+      renderedStarCoords.push({ id: star.id, x, y, name: star.name });
+
+      // 별빛 빛남 효과
+      ctx.beginPath();
+      ctx.arc(x, y, 10, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(255, 213, 74, 0.4)';
+      ctx.fill();
+
+      ctx.beginPath();
+      ctx.arc(x, y, 4, 0, Math.PI * 2);
+      ctx.fillStyle = '#ffd54a';
+      ctx.fill();
+
+      ctx.font = '12px "Noto Sans KR"';
+      ctx.fillStyle = '#ffffff';
+      ctx.textAlign = 'center';
+      ctx.fillText(star.name, x, y - 10);
+    });
+
+    requestAnimationFrame(draw);
+  }
+  draw();
 
   let hideTimer = null;
   function showControls() {
     bottomControls.classList.add('visible');
     clearTimeout(hideTimer);
     hideTimer = setTimeout(() => {
-      bottomControls.classList.remove('visible');
-    }, 5000);
+      if (!isDeleteMode) bottomControls.classList.remove('visible');
+    }, 3000);
   }
-
-  window.addEventListener('mousemove', showControls);
-
-  function toggleDeleteMode() {
-    isDeleteMode = !isDeleteMode;
-    if (isDeleteMode) {
-      deleteToggleBtn.classList.add('active');
-      deleteBadge.classList.add('active');
-      canvas.style.cursor = 'crosshair';
-    } else {
-      deleteToggleBtn.classList.remove('active');
-      deleteBadge.classList.remove('active');
-      canvas.style.cursor = 'default';
-    }
-  }
-
-  deleteToggleBtn.addEventListener('click', toggleDeleteMode);
-
-  window.addEventListener('keydown', (e) => {
-    if (e.code === 'KeyD' || e.code === 'Keyd') {
-      toggleDeleteMode();
-    }
-    if (e.code === 'Space') {
-      e.preventDefault();
-      socket.emit('submitNickname', '별');
-    }
-  });
-
-  // 별 클릭 및 삭제 판정 (인식범위 확대: 28px)
-  canvas.addEventListener('click', (e) => {
-    if (!isDeleteMode) return;
-
-    const rect = canvas.getBoundingClientRect();
-    const clickX = e.clientX - rect.left;
-    const clickY = e.clientY - rect.top;
-
-    let targetStar = null;
-    let minDistance = 28; // 클릭 허용 범위 반경(px)
-
-    for (let i = 0; i < renderedStarCoords.length; i++) {
-      const star = renderedStarCoords[i];
-      const dist = Math.hypot(clickX - star.x, clickY - star.y);
-
-      if (dist < minDistance) {
-        minDistance = dist;
-        targetStar = star;
-      }
-    }
-
-    if (targetStar) {
-      if (confirm(`'${targetStar.nickname}' 별을 삭제하시겠습니까?`)) {
-        socket.emit('deleteStar', targetStar.id);
-      }
-    }
-  });
-
-function generateRibbonPositions(n) {
-    const total = path.getTotalLength();
-    const pts = [];
-    
-    // 기본 경로 오프셋 설정 (기존 4px -> 최대 24px 지그재그 오프셋 확충)
-    for (let i = 0; i < n; i++) {
-      const t = (i / n) * total;
-      const p = path.getPointAtLength(t);
-
-      // 별의 순번에 따라 좌/우(지그재그) 번갈아가며 위치를 분산시킵니다.
-      const side = (i % 2 === 0) ? 1 : -1;
-      
-      // 개수가 많아질수록 지그재그 폭을 조절 (15px ~ 25px 사이 무작위 변주)
-      const offsetDistance = (12 + Math.random() * 13) * side;
-      
-      // 경로상의 약간의 앞뒤 오차(±6px)와 좌우 지그재그 오프셋 적용
-      const offX = offsetDistance + (Math.random() - 0.5) * 12;
-      const offY = (Math.random() - 0.5) * 12;
-
-      pts.push({ px: p.x + offX, py: p.y + offY });
-    }
-
-    // 인원 추가에 따라 순차적으로 경로를 따라 차오르되, 약간의 랜덤 섞기 적용
-    for (let i = pts.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [pts[i], pts[j]] = [pts[j], pts[i]];
-    }
-
-    return pts;
-  }
-
-  function resize() {
-    dpr = Math.min(window.devicePixelRatio || 1, 2);
-    W = canvas.clientWidth; H = canvas.clientHeight;
-    canvas.width = Math.floor(W * dpr); canvas.height = Math.floor(H * dpr);
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  }
-  window.addEventListener('resize', resize);
-
-  fullscreenBtn.addEventListener('click', () => {
-    if (!document.fullscreenElement) {
-      document.documentElement.requestFullscreen();
-    } else if (document.exitFullscreen) {
-      document.exitFullscreen();
-    }
-  });
+  document.addEventListener('mousemove', showControls);
 
   targetSelect.addEventListener('change', (e) => {
     targetCount = parseInt(e.target.value, 10);
     maxDisplayEl.textContent = targetCount;
-    pathPoints = generateRibbonPositions(targetCount);
+  });
+
+  fullscreenBtn.addEventListener('click', () => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen();
+    } else {
+      document.exitFullscreen();
+    }
+  });
+
+  function toggleDeleteMode() {
+    isDeleteMode = !isDeleteMode;
+    deleteBadge.classList.toggle('active', isDeleteMode);
+    deleteToggleBtn.style.background = isDeleteMode ? '#dc2626' : '#121826';
+    if(isDeleteMode) bottomControls.classList.add('visible');
+  }
+  deleteToggleBtn.addEventListener('click', toggleDeleteMode);
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'd' || e.key === 'D') toggleDeleteMode();
+  });
+
+  canvas.addEventListener('click', (e) => {
+    if (!isDeleteMode) return;
+    const rect = canvas.getBoundingClientRect();
+    const clickX = e.clientX - rect.left;
+    const clickY = e.clientY - rect.top;
+
+    renderedStarCoords.forEach(star => {
+      const dist = Math.hypot(star.x - clickX, star.y - clickY);
+      if (dist < 20) {
+        starsData = starsData.filter(s => s.id !== star.id);
+        updateCount();
+      }
+    });
   });
 
   resetBtn.addEventListener('click', () => {
-    if (confirm('모든 별빛 데이터를 초기화하시겠습니까?')) {
-      socket.emit('resetData');
+    if (confirm('모든 별빛을 초기화하시겠습니까?')) {
+      socket.emit('clearStars');
     }
   });
 
-  function initStarAnimationProps(star, isNew = false) {
-    star.phase = Math.random() * Math.PI * 2;
-    star.twinkleSpeed = 0.02 + Math.random() * 0.02;
-    star.spawnTime = isNew ? Date.now() : 0;
-    star.nickname = filterBadWords(star.nickname);
-  }
-
-  socket.on('initStars', (serverStars) => {
-    starsData = serverStars;
-    starsData.forEach(star => initStarAnimationProps(star, false));
-    currentCountEl.textContent = starsData.length;
-  });
-
-  socket.on('newStarAdded', (newStar) => {
-    initStarAnimationProps(newStar, true);
-    starsData.push(newStar);
-    currentCountEl.textContent = starsData.length;
-  });
-
-  socket.on('starDeleted', (deletedId) => {
-    starsData = starsData.filter(s => s.id !== deletedId);
-    currentCountEl.textContent = starsData.length;
-  });
-
-  function drawPointMarker(x, y, title, subTitle, pulseTime, align = 'center') {
-    const pulse = (Math.sin(pulseTime * 0.003) + 1) / 2;
-    ctx.strokeStyle = `rgba(255, 213, 74, ${0.4 + pulse * 0.4})`;
-    ctx.lineWidth = 1.5;
-    ctx.beginPath();
-    ctx.arc(x, y, 6 + pulse * 4, 0, Math.PI * 2);
-    ctx.stroke();
-
-    ctx.fillStyle = '#ffd54a';
-    ctx.beginPath();
-    ctx.arc(x, y, 4, 0, Math.PI * 2);
-    ctx.fill();
-
-    ctx.font = 'bold 12px "Noto Sans KR", sans-serif';
-    const text1Width = ctx.measureText(title).width;
-    ctx.font = '500 11px "Noto Sans KR", sans-serif';
-    const text2Width = subTitle ? ctx.measureText(subTitle).width : 0;
-    const boxW = Math.max(text1Width, text2Width) + 16;
-    const boxH = subTitle ? 32 : 20;
-
-    let boxX = x - boxW / 2;
-    let boxY = y - boxH - 12;
-
-    if (align === 'right-top') {
-      boxX = x + 12;
-      boxY = y - boxH - 6;
-    } else if (align === 'left-bottom') {
-      boxX = x - boxW - 12;
-      boxY = y + 8;
-    }
-
-    ctx.fillStyle = 'rgba(10, 15, 36, 0.88)';
-    ctx.strokeStyle = 'rgba(255, 213, 74, 0.7)';
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.roundRect(boxX, boxY, boxW, boxH, 6);
-    ctx.fill();
-    ctx.stroke();
-
-    ctx.shadowColor = 'rgba(0, 0, 0, 0.9)';
-    ctx.shadowBlur = 4;
-    ctx.textAlign = 'center';
-    
-    const textCenterX = boxX + boxW / 2;
-    if (subTitle) {
-      ctx.fillStyle = '#9aa0bc';
-      ctx.font = '500 10px "Noto Sans KR", sans-serif';
-      ctx.fillText(title, textCenterX, boxY + 12);
-      ctx.fillStyle = '#ffd54a';
-      ctx.font = 'bold 11px "Noto Sans KR", sans-serif';
-      ctx.fillText(subTitle, textCenterX, boxY + 25);
-    } else {
-      ctx.fillStyle = '#ffd54a';
-      ctx.font = 'bold 11px "Noto Sans KR", sans-serif';
-      ctx.fillText(title, textCenterX, boxY + 14);
-    }
-    ctx.shadowBlur = 0;
-  }
-
-  function draw() {
-    ctx.clearRect(0, 0, W, H);
-    renderedStarCoords = [];
-
-    const minRibbonY = 460;
-    const maxRibbonY = 1240;
-    const ribbonHeight = maxRibbonY - minRibbonY;
-
-    let scale = H / ribbonHeight;
-    let renderW = REF_W * scale;
-    let renderH = REF_H * scale;
-
-    let offsetX = (W - renderW) / 2;
-    let offsetY = -minRibbonY * scale;
-
-    if (mapImg.complete && mapImg.naturalWidth !== 0) {
-      ctx.drawImage(mapImg, offsetX, offsetY, renderW, renderH);
-      ctx.fillStyle = 'rgba(6, 10, 20, 0.45)';
-      ctx.fillRect(offsetX, 0, renderW, H);
-    }
-
-    if (offsetX > 0) {
-      if (leftBannerImg.complete && leftBannerImg.naturalWidth !== 0) {
-        const leftAspect = leftBannerImg.naturalWidth / leftBannerImg.naturalHeight;
-        let bw = H * leftAspect;
-        let bh = H;
-        if (bw > offsetX) { bw = offsetX; bh = bw / leftAspect; }
-        ctx.drawImage(leftBannerImg, (offsetX - bw) / 2, (H - bh) / 2, bw, bh);
-      }
-
-      if (rightBannerImg.complete && rightBannerImg.naturalWidth !== 0) {
-        const rightAspect = rightBannerImg.naturalWidth / rightBannerImg.naturalHeight;
-        let bw = H * rightAspect;
-        let bh = H;
-        if (bw > offsetX) { bw = offsetX; bh = bw / rightAspect; }
-        ctx.drawImage(rightBannerImg, offsetX + renderW + (offsetX - bw) / 2, (H - bh) / 2, bw, bh);
-      }
-    }
-
-    const now = Date.now();
-
-    const lightPathStartX = offsetX + 710 * scale;
-    const lightPathStartY = offsetY + 1060 * scale;
-    const lightPathEndX = offsetX + 780 * scale;
-    const lightPathEndY = offsetY + 1150 * scale;
-
-    ctx.save();
-    ctx.beginPath();
-    ctx.moveTo(lightPathStartX, lightPathStartY);
-    ctx.quadraticCurveTo(offsetX + 760 * scale, offsetY + 1100 * scale, lightPathEndX, lightPathEndY);
-    ctx.strokeStyle = 'rgba(255, 213, 74, 0.8)';
-    ctx.lineWidth = 4 * scale;
-    ctx.setLineDash([6 * scale, 4 * scale]);
-    ctx.shadowColor = '#ffd54a';
-    ctx.shadowBlur = 10;
-    ctx.stroke();
-    ctx.restore();
-
-    ctx.save();
-    ctx.font = 'bold 13px "Noto Sans KR", sans-serif';
-    ctx.fillStyle = '#ffd54a';
-    ctx.shadowColor = 'rgba(0,0,0,0.9)';
-    ctx.shadowBlur = 6;
-    ctx.textAlign = 'center';
-    ctx.fillText('빛의 길 ▶', (lightPathStartX + lightPathEndX) / 2 + 10, (lightPathStartY + lightPathEndY) / 2 + 18);
-    ctx.restore();
-
-    // 1. 별빛 애니메이션 렌더링 (클릭 감지 데이터를 먼저 등록)
-    starsData.forEach((star, index) => {
-      if (index >= pathPoints.length) return;
-      const pt = pathPoints[index];
-      const x = offsetX + pt.px * scale;
-      const y = offsetY + pt.py * scale;
-
-      renderedStarCoords.push({ id: star.id, x, y, nickname: star.nickname });
-
-      star.phase += star.twinkleSpeed || 0.03;
-      const twinkleFactor = (Math.sin(star.phase) + 1) / 2;
-
-      let spawnScale = 1;
-      if (star.spawnTime && now - star.spawnTime < 800) {
-        const progress = (now - star.spawnTime) / 800;
-        spawnScale = Math.sin(progress * Math.PI) * 1.6 + (1 - Math.sin(progress * Math.PI)) * progress;
-      }
-
-      const glowR = (8 + twinkleFactor * 6) * spawnScale;
-      const alpha = 0.6 + twinkleFactor * 0.4;
-
-      const g = ctx.createRadialGradient(x, y, 0, x, y, Math.max(0.1, glowR));
-      g.addColorStop(0, `rgba(255, 240, 150, ${alpha})`);
-      g.addColorStop(0.3, `rgba(255, 213, 74, ${alpha * 0.8})`);
-      g.addColorStop(1, 'rgba(255, 213, 74, 0)');
-      ctx.fillStyle = g;
-      ctx.beginPath();
-      ctx.arc(x, y, Math.max(0.1, glowR), 0, Math.PI * 2);
-      ctx.fill();
-
-      const coreR = (2.5 + twinkleFactor * 1.2) * spawnScale;
-      ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
-      ctx.beginPath();
-      ctx.arc(x, y, Math.max(0.1, coreR), 0, Math.PI * 2);
-      ctx.fill();
-
-      if (isDeleteMode) {
-        ctx.strokeStyle = 'rgba(239, 68, 68, 0.8)';
-        ctx.lineWidth = 1.5;
-        ctx.beginPath();
-        ctx.arc(x, y, 12, 0, Math.PI * 2);
-        ctx.stroke();
-      }
-
-      ctx.fillStyle = `rgba(255, 255, 255, ${0.7 + twinkleFactor * 0.3})`;
-      ctx.shadowColor = 'rgba(0, 0, 0, 0.95)';
-      ctx.shadowBlur = 4;
-      ctx.font = '500 11px "Noto Sans KR", sans-serif';
-      ctx.textAlign = 'left';
-      ctx.fillText(star.nickname, x + 7, y + 4);
-      ctx.shadowBlur = 0;
-    });
-
-    // 2. 출발지점 / 도착지점 라벨 (별 뒤 레이어 간섭 방지)
-    const startPt = path.getPointAtLength(path.getTotalLength());
-    const endPt = path.getPointAtLength(0);
-
-    drawPointMarker(offsetX + startPt.x * scale, offsetY + startPt.y * scale, '노란리본의 길', '출발지점', now, 'right-top');
-    drawPointMarker(offsetX + endPt.x * scale, offsetY + endPt.y * scale, '노란리본의 길', '도착지점', now + 1000, 'left-bottom');
-
-    requestAnimationFrame(draw);
-  }
-
-  pathPoints = generateRibbonPositions(targetCount);
-  resize();
-  requestAnimationFrame(draw);
-
-// 변경 후 코드
-const currentHost = window.location.origin;
-new QRCode(document.getElementById("qrcode"), {
-  text: `${currentHost}/mobile.html`, width: 70, height: 70
-});
 })();
 </script>
 </body>

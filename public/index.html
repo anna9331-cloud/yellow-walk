@@ -38,7 +38,7 @@
   .counter-box .label { font-size: 11px; color: var(--ink-dim); margin-bottom: 2px; }
   .counter-box .count { font-size: 20px; font-weight: bold; color: var(--ribbon); }
 
-  .qr-container { background: rgba(255,255,255,0.92); padding: 6px; border-radius: 8px; text-align:center; color:#000; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
+  .qr-container { background: rgba(255,255,255,0.92); padding: 6px; border-radius: 8px; text-align:center; color:#000; box-shadow: 0 4px 10px rgba(0,0,0,0.5); cursor: pointer; }
   .qr-container p { font-size: 10px; margin-top: 2px; font-weight: bold; }
   
   main { flex:1; position:relative; overflow:hidden; background: #000; }
@@ -62,27 +62,24 @@
   }
   .delete-mode-badge.active { display: block; }
 
+  /* 관리자 제어바 기본 감춤 처리 */
   .bottom-controls {
     position: absolute;
     bottom: 16px;
     right: 16px;
     z-index: 20;
-    background: rgba(10, 15, 36, 0.85);
-    border: 1px solid rgba(255, 213, 74, 0.3);
+    background: rgba(10, 15, 36, 0.95);
+    border: 1px solid rgba(255, 213, 74, 0.5);
     padding: 8px 12px;
     border-radius: 8px;
-    display: flex;
+    display: none; /* 기본 숨김 */
     gap: 8px;
     align-items: center;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.6);
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.4s ease;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.8);
   }
 
-  .bottom-controls.visible {
-    opacity: 1;
-    pointer-events: auto;
+  .bottom-controls.admin-active {
+    display: flex; /* 관리자 모드일 때만 노출 */
   }
 
   .target-select, .reset-btn, .fullscreen-btn, .delete-btn {
@@ -117,7 +114,7 @@
         <div class="count"><span id="currentCount">0</span> / <span id="maxDisplay">100</span>명</div>
       </div>
 
-      <div class="qr-container">
+      <div class="qr-container" id="adminTrigger">
         <div id="qrcode"></div>
         <p>스캔하여 참여하기</p>
       </div>
@@ -153,8 +150,11 @@
   const deleteToggleBtn = document.getElementById('deleteToggleBtn');
   const deleteBadge = document.getElementById('deleteBadge');
   const bottomControls = document.getElementById('bottomControls');
+  const adminTrigger = document.getElementById('adminTrigger');
 
-  // QR 코드 동적 생성 (스크립트 상단 배치)
+  let isAdminMode = false;
+
+  // QR 코드 동적 생성
   const qrElem = document.getElementById("qrcode");
   if (qrElem) {
     qrElem.innerHTML = '';
@@ -196,18 +196,52 @@
   const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
   path.setAttribute('d', 'M 200,1190 C 270,1090 350,960 415,860 C 315,700 320,510 415,510 C 510,510 515,700 415,860 C 500,950 600,1020 700,1055');
 
-  let hideTimer = null;
-  function showControls() {
-    bottomControls.classList.add('visible');
-    clearTimeout(hideTimer);
-    hideTimer = setTimeout(() => {
-      bottomControls.classList.remove('visible');
-    }, 5000);
+  // 관리자 모드 토글 함수
+  function toggleAdminMode() {
+    isAdminMode = !isAdminMode;
+    if (isAdminMode) {
+      bottomControls.classList.add('admin-active');
+    } else {
+      bottomControls.classList.remove('admin-active');
+      if (isDeleteMode) toggleDeleteMode(); // 관리자 모드 해제 시 삭제 모드도 함께 해제
+    }
   }
 
-  window.addEventListener('mousemove', showControls);
+  // 관리자 모드 진입 키: Ctrl + Shift + A
+  window.addEventListener('keydown', (e) => {
+    if (e.ctrlKey && e.shiftKey && (e.key === 'A' || e.key === 'a')) {
+      e.preventDefault();
+      toggleAdminMode();
+    }
+
+    // 일반 사용자 기능: 스페이스바로 별 추가
+    if (e.code === 'Space') {
+      e.preventDefault();
+      socket.emit('submitNickname', '별');
+    }
+
+    // 관리자 전용 기능: [D] 키 삭제 모드 토글
+    if (isAdminMode && (e.code === 'KeyD' || e.code === 'Keyd')) {
+      toggleDeleteMode();
+    }
+  });
+
+  // 우측 상단 QR 코드 영역 5번 연달아 클릭 시 관리자 모드 토글 (히든 마우스 트릭)
+  let clickCount = 0;
+  let clickTimer = null;
+  adminTrigger.addEventListener('click', () => {
+    clickCount++;
+    clearTimeout(clickTimer);
+    if (clickCount >= 5) {
+      toggleAdminMode();
+      clickCount = 0;
+    } else {
+      clickTimer = setTimeout(() => { clickCount = 0; }, 1500);
+    }
+  });
 
   function toggleDeleteMode() {
+    if (!isAdminMode) return;
     isDeleteMode = !isDeleteMode;
     if (isDeleteMode) {
       deleteToggleBtn.classList.add('active');
@@ -222,19 +256,9 @@
 
   deleteToggleBtn.addEventListener('click', toggleDeleteMode);
 
-  window.addEventListener('keydown', (e) => {
-    if (e.code === 'KeyD' || e.code === 'Keyd') {
-      toggleDeleteMode();
-    }
-    if (e.code === 'Space') {
-      e.preventDefault();
-      socket.emit('submitNickname', '별');
-    }
-  });
-
-  // 별 클릭 및 삭제 판정 (인식범위 확대: 28px)
+  // 관리자 모드일 때만 별 클릭 삭제 허용
   canvas.addEventListener('click', (e) => {
-    if (!isDeleteMode) return;
+    if (!isAdminMode || !isDeleteMode) return;
 
     const rect = canvas.getBoundingClientRect();
     const clickX = e.clientX - rect.left;
@@ -300,12 +324,14 @@
   });
 
   targetSelect.addEventListener('change', (e) => {
+    if (!isAdminMode) return;
     targetCount = parseInt(e.target.value, 10);
     maxDisplayEl.textContent = targetCount;
     pathPoints = generateRibbonPositions(targetCount);
   });
 
   resetBtn.addEventListener('click', () => {
+    if (!isAdminMode) return;
     if (confirm('모든 별빛 데이터를 초기화하시겠습니까?')) {
       socket.emit('resetData');
       socket.emit('clearStars');
@@ -327,12 +353,6 @@
   });
 
   socket.on('newStarAdded', (newStar) => {
-    initStarAnimationProps(newStar, true);
-    starsData.push(newStar);
-    currentCountEl.textContent = starsData.length;
-  });
-
-  socket.on('newStar', (newStar) => {
     initStarAnimationProps(newStar, true);
     starsData.push(newStar);
     currentCountEl.textContent = starsData.length;

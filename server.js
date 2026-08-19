@@ -1,49 +1,60 @@
 const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
+const path = require('path');
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server, {
-  cors: { origin: "*" }
-});
+const io = new Server(server);
 
-app.use(express.static('public'));
+app.use(express.static(path.join(__dirname, 'public')));
 
-// 모바일 페이지 라우팅
-app.get('/mobile', (req, res) => {
-  res.sendFile(__dirname + '/public/mobile.html');
-});
-
-// 실시간 별빛 데이터 보관 (메모리)
+// 메모리 내 별 데이터 저장소
 let stars = [];
 
 io.on('connection', (socket) => {
-  // 처음 접속한 전광판에 기존 별빛 목록 전달
+  console.log('클라이언트 연결됨:', socket.id);
+
+  // 접속 시 기존 별 목록 전달
   socket.emit('initStars', stars);
 
-  // 모바일에서 별빛 전송 신호를 받았을 때
-  socket.on('addStar', (data) => {
+  // 모바일 또는 PC에서 닉네임 제출 시
+  socket.on('submitNickname', (nickname) => {
     const newStar = {
-      id: Date.now() + Math.random().toString(36).substr(2, 9),
-      name: data.name,
-      x: Math.floor(Math.random() * 80) + 10, // 좌우 위치 (%)
-      y: Math.floor(Math.random() * 70) + 15  // 상하 위치 (%)
+      id: Date.now() + Math.random().toString(36).substr(2, 4),
+      nickname: nickname || '별',
+      name: nickname || '별'
     };
     stars.push(newStar);
     
-    // 연결된 모든 화면(전광판)으로 새 별빛 방송(Broadcast)
+    // 연결된 모든 전광판/모바일에 동시에 데이터 방송
+    io.emit('newStarAdded', newStar);
     io.emit('newStar', newStar);
   });
 
-  // 관리자 초기화 명령 시
+  // 개별 별 삭제
+  socket.on('deleteStar', (starId) => {
+    stars = stars.filter(s => s.id !== starId);
+    io.emit('starDeleted', starId);
+  });
+
+  // 전체 데이터 초기화
+  socket.on('resetData', () => {
+    stars = [];
+    io.emit('resetStars');
+  });
+
   socket.on('clearStars', () => {
     stars = [];
     io.emit('resetStars');
+  });
+
+  socket.on('disconnect', () => {
+    console.log('클라이언트 연결 해제:', socket.id);
   });
 });
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log(`서버가 포트 ${PORT}에서 실행 중입니다.`);
 });

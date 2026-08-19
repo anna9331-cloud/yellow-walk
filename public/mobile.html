@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>노란리본의 길 — 별빛 남기기</title>
+<script src="/socket.io/socket.io.js"></script>
+<style>
+  body {
+    background: #0a0f24; color: #ece7d8; font-family: sans-serif;
+    height: 100vh; margin:0; display:flex; flex-direction:column;
+    justify-content:center; align-items:center; padding: 20px;
+  }
+  .card {
+    background: #121a3a; padding: 30px 20px; border-radius: 16px;
+    width: 100%; max-width: 360px; text-align: center;
+    border: 1px solid rgba(139,147,184,0.3);
+  }
+  h2 { color: #ffd54a; margin-bottom: 8px; }
+  p { color: #9aa0bc; font-size: 14px; margin-bottom: 24px; }
+  input {
+    width: 100%; padding: 14px; border-radius: 8px; border: 1px solid #8b93b8;
+    background: #0a0f24; color: #fff; font-size: 16px; margin-bottom: 16px; text-align: center;
+  }
+  button {
+    width: 100%; padding: 14px; border-radius: 8px; border: none;
+    background: #ffd54a; color: #0a0f24; font-weight: bold; font-size: 16px; cursor: pointer;
+  }
+  .success-msg { display: none; color: #ffd54a; font-size: 18px; line-height: 1.5; }
+</style>
+</head>
+<body>
+  <div class="card" id="inputCard">
+    <h2>노란리본의 길</h2>
+    <p>당신의 이름을 별빛으로 남겨주세요</p>
+    <input type="text" id="nickname" placeholder="닉네임을 입력하세요 (최대 6자)" maxlength="6">
+    <button id="sendBtn">별빛 보내기</button>
+  </div>
+
+  <div class="card success-msg" id="successMsg">
+    ✨<br>당신의 별빛이 전광판에 밝혀졌습니다.
+  </div>
+
+<script>
+  const socket = io();
+  const sendBtn = document.getElementById('sendBtn');
+  const nicknameInput = document.getElementById('nickname');
+  const inputCard = document.getElementById('inputCard');
+  const successMsg = document.getElementById('successMsg');
+
+  sendBtn.addEventListener('click', () => {
+    const name = nicknameInput.value.trim();
+    if (!name) {
+      alert('닉네임을 입력해주세요.');
+      return;
+    }
+    // 서버로 닉네임 전송
+    socket.emit('submitNickname', name);
+
+    // 입력 완료 화면으로 전환
+    inputCard.style.display = 'none';
+    successMsg.style.display = 'block';
+  });
+</script>
+</body>
+</html>

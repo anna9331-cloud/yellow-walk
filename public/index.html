@@ -154,14 +154,20 @@
   const deleteBadge = document.getElementById('deleteBadge');
   const bottomControls = document.getElementById('bottomControls');
 
-  const mapImg = new Image();
-  mapImg.src = '/map.jpg';
+  // QR 코드 동적 생성 (스크립트 상단 배치)
+  const qrElem = document.getElementById("qrcode");
+  if (qrElem) {
+    qrElem.innerHTML = '';
+    new QRCode(qrElem, {
+      text: `${window.location.origin}/mobile.html`,
+      width: 65,
+      height: 65
+    });
+  }
 
-  const leftBannerImg = new Image();
-  leftBannerImg.src = '/left_banner.jpg';
-
-  const rightBannerImg = new Image();
-  rightBannerImg.src = '/right_banner.jpg';
+  const mapImg = new Image(); mapImg.src = '/map.jpg';
+  const leftBannerImg = new Image(); leftBannerImg.src = '/left_banner.jpg';
+  const rightBannerImg = new Image(); rightBannerImg.src = '/right_banner.jpg';
 
   let W=0, H=0, dpr=1;
   let targetCount = parseInt(targetSelect.value, 10);
@@ -235,7 +241,7 @@
     const clickY = e.clientY - rect.top;
 
     let targetStar = null;
-    let minDistance = 28; // 클릭 허용 범위 반경(px)
+    let minDistance = 28;
 
     for (let i = 0; i < renderedStarCoords.length; i++) {
       const star = renderedStarCoords[i];
@@ -254,29 +260,21 @@
     }
   });
 
-function generateRibbonPositions(n) {
+  function generateRibbonPositions(n) {
     const total = path.getTotalLength();
     const pts = [];
     
-    // 기본 경로 오프셋 설정 (기존 4px -> 최대 24px 지그재그 오프셋 확충)
     for (let i = 0; i < n; i++) {
       const t = (i / n) * total;
       const p = path.getPointAtLength(t);
-
-      // 별의 순번에 따라 좌/우(지그재그) 번갈아가며 위치를 분산시킵니다.
       const side = (i % 2 === 0) ? 1 : -1;
-      
-      // 개수가 많아질수록 지그재그 폭을 조절 (15px ~ 25px 사이 무작위 변주)
       const offsetDistance = (12 + Math.random() * 13) * side;
-      
-      // 경로상의 약간의 앞뒤 오차(±6px)와 좌우 지그재그 오프셋 적용
       const offX = offsetDistance + (Math.random() - 0.5) * 12;
       const offY = (Math.random() - 0.5) * 12;
 
       pts.push({ px: p.x + offX, py: p.y + offY });
     }
 
-    // 인원 추가에 따라 순차적으로 경로를 따라 차오르되, 약간의 랜덤 섞기 적용
     for (let i = pts.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [pts[i], pts[j]] = [pts[j], pts[i]];
@@ -310,6 +308,7 @@ function generateRibbonPositions(n) {
   resetBtn.addEventListener('click', () => {
     if (confirm('모든 별빛 데이터를 초기화하시겠습니까?')) {
       socket.emit('resetData');
+      socket.emit('clearStars');
     }
   });
 
@@ -317,11 +316,12 @@ function generateRibbonPositions(n) {
     star.phase = Math.random() * Math.PI * 2;
     star.twinkleSpeed = 0.02 + Math.random() * 0.02;
     star.spawnTime = isNew ? Date.now() : 0;
-    star.nickname = filterBadWords(star.nickname);
+    const rawName = star.nickname || star.name || '별';
+    star.nickname = filterBadWords(rawName);
   }
 
   socket.on('initStars', (serverStars) => {
-    starsData = serverStars;
+    starsData = serverStars || [];
     starsData.forEach(star => initStarAnimationProps(star, false));
     currentCountEl.textContent = starsData.length;
   });
@@ -332,9 +332,20 @@ function generateRibbonPositions(n) {
     currentCountEl.textContent = starsData.length;
   });
 
+  socket.on('newStar', (newStar) => {
+    initStarAnimationProps(newStar, true);
+    starsData.push(newStar);
+    currentCountEl.textContent = starsData.length;
+  });
+
   socket.on('starDeleted', (deletedId) => {
     starsData = starsData.filter(s => s.id !== deletedId);
     currentCountEl.textContent = starsData.length;
+  });
+
+  socket.on('resetStars', () => {
+    starsData = [];
+    currentCountEl.textContent = 0;
   });
 
   function drawPointMarker(x, y, title, subTitle, pulseTime, align = 'center') {
@@ -463,7 +474,6 @@ function generateRibbonPositions(n) {
     ctx.fillText('빛의 길 ▶', (lightPathStartX + lightPathEndX) / 2 + 10, (lightPathStartY + lightPathEndY) / 2 + 18);
     ctx.restore();
 
-    // 1. 별빛 애니메이션 렌더링 (클릭 감지 데이터를 먼저 등록)
     starsData.forEach((star, index) => {
       if (index >= pathPoints.length) return;
       const pt = pathPoints[index];
@@ -516,7 +526,6 @@ function generateRibbonPositions(n) {
       ctx.shadowBlur = 0;
     });
 
-    // 2. 출발지점 / 도착지점 라벨 (별 뒤 레이어 간섭 방지)
     const startPt = path.getPointAtLength(path.getTotalLength());
     const endPt = path.getPointAtLength(0);
 
@@ -530,11 +539,6 @@ function generateRibbonPositions(n) {
   resize();
   requestAnimationFrame(draw);
 
-// 변경 후 코드
-const currentHost = window.location.origin;
-new QRCode(document.getElementById("qrcode"), {
-  text: `${currentHost}/mobile.html`, width: 70, height: 70
-});
 })();
 </script>
 </body>

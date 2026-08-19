@@ -1,66 +1,156 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>노란리본의 길 — 별빛 남기기</title>
-<script src="/socket.io/socket.io.js"></script>
-<style>
-  body {
-    background: #0a0f24; color: #ece7d8; font-family: sans-serif;
-    height: 100vh; margin:0; display:flex; flex-direction:column;
-    justify-content:center; align-items:center; padding: 20px;
-  }
-  .card {
-    background: #121a3a; padding: 30px 20px; border-radius: 16px;
-    width: 100%; max-width: 360px; text-align: center;
-    border: 1px solid rgba(139,147,184,0.3);
-  }
-  h2 { color: #ffd54a; margin-bottom: 8px; }
-  p { color: #9aa0bc; font-size: 14px; margin-bottom: 24px; }
-  input {
-    width: 100%; padding: 14px; border-radius: 8px; border: 1px solid #8b93b8;
-    background: #0a0f24; color: #fff; font-size: 16px; margin-bottom: 16px; text-align: center;
-  }
-  button {
-    width: 100%; padding: 14px; border-radius: 8px; border: none;
-    background: #ffd54a; color: #0a0f24; font-weight: bold; font-size: 16px; cursor: pointer;
-  }
-  .success-msg { display: none; color: #ffd54a; font-size: 18px; line-height: 1.5; }
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>노란리본의 길 - 별빛 남기기</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #090c15;
+      color: #ece7d8;
+      font-family: 'Noto Sans KR', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 24px;
+    }
+    .card {
+      background: rgba(18, 24, 38, 0.95);
+      border: 1px solid rgba(255, 213, 74, 0.2);
+      border-radius: 20px;
+      padding: 36px 24px;
+      width: 100%;
+      max-width: 360px;
+      text-align: center;
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5), 0 0 20px rgba(255, 213, 74, 0.08);
+      position: relative;
+      overflow: hidden;
+    }
+    h1 {
+      font-size: 22px;
+      color: #ffd54a;
+      margin-bottom: 8px;
+      letter-spacing: -0.02em;
+    }
+    p.sub {
+      font-size: 14px;
+      color: #9aa0bc;
+      margin-bottom: 28px;
+    }
+    .input-group {
+      width: 100%;
+      margin-bottom: 16px;
+    }
+    input[type="text"] {
+      width: 100%;
+      height: 52px;
+      background: rgba(10, 14, 23, 0.8);
+      border: 1px solid rgba(255, 213, 74, 0.3);
+      border-radius: 12px;
+      color: #fff;
+      font-size: 15px;
+      text-align: center;
+      outline: none;
+      transition: all 0.2s ease;
+    }
+    input[type="text"]:focus {
+      border-color: #ffd54a;
+      box-shadow: 0 0 12px rgba(255, 213, 74, 0.25);
+    }
+    button {
+      width: 100%;
+      height: 52px;
+      background: #ffd54a;
+      border: none;
+      border-radius: 12px;
+      color: #000;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.2s ease, transform 0.1s ease;
+    }
+    button:active {
+      transform: scale(0.98);
+      background: #e6bd3b;
+    }
+    
+    /* 완료 화면 스타일 */
+    .success-box {
+      display: none;
+      animation: fadeIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+    .star-icon {
+      font-size: 40px;
+      margin-bottom: 16px;
+      display: inline-block;
+      animation: pulse 2s infinite alternate;
+    }
+    .success-title {
+      font-size: 17px;
+      line-height: 1.6;
+      color: #ece7d8;
+      font-weight: 500;
+      word-break: keep-all;
+    }
+    .highlight {
+      color: #ffd54a;
+      font-weight: 700;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(12px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes pulse {
+      from { transform: scale(1); filter: drop-shadow(0 0 6px rgba(255, 213, 74, 0.6)); }
+      to { transform: scale(1.15); filter: drop-shadow(0 0 16px rgba(255, 213, 74, 0.9)); }
+    }
+  </style>
 </head>
 <body>
-  <div class="card" id="inputCard">
-    <h2>노란리본의 길</h2>
-    <p>당신의 이름을 별빛으로 남겨주세요</p>
-    <input type="text" id="nickname" placeholder="닉네임을 입력하세요 (최대 6자)" maxlength="6">
-    <button id="sendBtn">별빛 보내기</button>
+
+  <div class="card">
+    <!-- 입력 폼 -->
+    <div id="form-box">
+      <h1>노란리본의 길</h1>
+      <p class="sub">당신의 이름을 별빛으로 남겨주세요</p>
+      <div class="input-group">
+        <input type="text" id="nickname" placeholder="닉네임을 입력하세요 (최대 6자)" maxlength="6">
+      </div>
+      <button onclick="sendStar()">별빛 보내기</button>
+    </div>
+
+    <!-- 완료 화면 -->
+    <div id="success-box" class="success-box">
+      <div class="star-icon">⭐</div>
+      <p class="success-title">
+        당신의 별빛이<br>
+        <span class="highlight">노란리본의 길</span>을 밝혀주었습니다.
+      </p>
+    </div>
   </div>
 
-  <div class="card success-msg" id="successMsg">
-    ✨<br>당신의 별빛이 전광판에 밝혀졌습니다.
-  </div>
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const socket = io();
 
-<script>
-  const socket = io();
-  const sendBtn = document.getElementById('sendBtn');
-  const nicknameInput = document.getElementById('nickname');
-  const inputCard = document.getElementById('inputCard');
-  const successMsg = document.getElementById('successMsg');
+    function sendStar() {
+      const input = document.getElementById('nickname');
+      const name = input.value.trim();
 
-  sendBtn.addEventListener('click', () => {
-    const name = nicknameInput.value.trim();
-    if (!name) {
-      alert('닉네임을 입력해주세요.');
-      return;
+      if (!name) {
+        alert('닉네임을 입력해주세요.');
+        return;
+      }
+
+      socket.emit('addStar', { name: name });
+
+      document.getElementById('form-box').style.display = 'none';
+      document.getElementById('success-box').style.display = 'block';
     }
-    // 서버로 닉네임 전송
-    socket.emit('submitNickname', name);
-
-    // 입력 완료 화면으로 전환
-    inputCard.style.display = 'none';
-    successMsg.style.display = 'block';
-  });
-</script>
+  </script>
 </body>
 </html>

@@ -139,6 +139,7 @@
       <button id="fullscreenBtn" class="fullscreen-btn">전체화면</button>
     </div>
   </main>
+
 <script>
 (function(){
   const socket = io();
@@ -152,27 +153,20 @@
   const deleteToggleBtn = document.getElementById('deleteToggleBtn');
   const deleteBadge = document.getElementById('deleteBadge');
   const bottomControls = document.getElementById('bottomControls');
-  const adminElements = document.querySelectorAll('.admin-only');
 
-  const qrElem = document.getElementById("qrcode");
-  if (qrElem) {
-    qrElem.innerHTML = '';
-    new QRCode(qrElem, {
-      text: `${window.location.origin}/mobile.html`,
-      width: 65,
-      height: 65
-    });
-  }
+  const mapImg = new Image();
+  mapImg.src = '/map.jpg';
 
-  const mapImg = new Image(); mapImg.src = '/map.jpg';
-  const leftBannerImg = new Image(); leftBannerImg.src = '/left_banner.jpg';
-  const rightBannerImg = new Image(); rightBannerImg.src = '/right_banner.jpg';
+  const leftBannerImg = new Image();
+  leftBannerImg.src = '/left_banner.jpg';
+
+  const rightBannerImg = new Image();
+  rightBannerImg.src = '/right_banner.jpg';
 
   let W=0, H=0, dpr=1;
   let targetCount = parseInt(targetSelect.value, 10);
   let starsData = [];
   let pathPoints = [];
-  let isAdminMode = false;
   let isDeleteMode = false;
   let renderedStarCoords = [];
 
@@ -180,24 +174,9 @@
   const REF_H = 1600;
 
   const BAD_WORDS = [
-    '시체', '해상', '세월충', '좌빨', '북한',
+    '어묵', '창녕', '시체', '해상', '세월충', '좌빨', '북한',
     '이재명', '납골당', '그만해', '그만', '공산당', '그만해라', '싫어', '싫다', '싫어요'
   ];
-
-  // 랜덤 닉네임 데이터베이스
-  const sampleNicknames = [
-    '노란리본', '기억', '함께하는길', '잊지않을게', '빛', 
-    '마음', '동행', '희망의빛', '영원한기억', '작은별빛', 
-    '함께걷기', '기억의숲', '노란물결', '빛나는길', '안산', 
-    '별빛걷기', '동행', '봄날', '햇살', '소중한기억', 
-    '함께하는삶', '밝은별빛', '평화의길', '진실의빛', '마음의길', 
-    '약속의별', '함께선날', '잊지않는맘', '온기', '노란빛', 
-    '이웃', '영원한봄', '기억할게', '0416', '화이팅', 
-    '약속의길', '함께할게요', '영원한별', '마음의별', '평화의마음', 
-    '기억의향기', '늘함께해', '봄을기억해', '빛의동행', '노란기억'
-  ];
-
-  let spaceClickCount = 0;
 
   function filterBadWords(text) {
     if (!text) return '별';
@@ -211,72 +190,39 @@
   const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
   path.setAttribute('d', 'M 200,1190 C 270,1090 350,960 415,860 C 315,700 320,510 415,510 C 510,510 515,700 415,860 C 500,950 600,1020 700,1055');
 
-  // 작업바 자동 숨김 로직 (5초 타이머)
   let hideTimer = null;
   function showControls() {
     bottomControls.classList.add('visible');
     clearTimeout(hideTimer);
     hideTimer = setTimeout(() => {
-      // 관리자 모드 중이 아닐 때만 5초 후 자동 숨김
-      if (!isAdminMode) {
-        bottomControls.classList.remove('visible');
-      }
+      bottomControls.classList.remove('visible');
     }, 5000);
   }
 
   window.addEventListener('mousemove', showControls);
-  window.addEventListener('click', showControls);
 
-  // D키 기반 관리자 모드 토글
-  function toggleAdminMode() {
-    isAdminMode = !isAdminMode;
-    isDeleteMode = isAdminMode;
-
-    adminElements.forEach(el => {
-      if (isAdminMode) {
-        el.classList.add('active');
-      } else {
-        el.classList.remove('active');
-      }
-    });
-
-    if (isAdminMode) {
+  function toggleDeleteMode() {
+    isDeleteMode = !isDeleteMode;
+    if (isDeleteMode) {
       deleteToggleBtn.classList.add('active');
       deleteBadge.classList.add('active');
       canvas.style.cursor = 'crosshair';
-      bottomControls.classList.add('visible');
     } else {
       deleteToggleBtn.classList.remove('active');
       deleteBadge.classList.remove('active');
       canvas.style.cursor = 'default';
-      showControls();
     }
   }
 
-  deleteToggleBtn.addEventListener('click', () => {
-    isDeleteMode = !isDeleteMode;
-    deleteToggleBtn.classList.toggle('active', isDeleteMode);
-    canvas.style.cursor = isDeleteMode ? 'crosshair' : 'default';
-  });
+  deleteToggleBtn.addEventListener('click', toggleDeleteMode);
 
   window.addEventListener('keydown', (e) => {
     if (e.code === 'KeyD' || e.code === 'Keyd') {
-      toggleAdminMode();
+      toggleDeleteMode();
     }
     if (e.code === 'Space') {
       e.preventDefault();
-      spaceClickCount++;
-
-      let selectedNickname = '';
-
-      if (spaceClickCount % 3 === 0) {
-        selectedNickname = '별';
-      } else {
-        const randomIndex = Math.floor(Math.random() * sampleNicknames.length);
-        selectedNickname = sampleNicknames[randomIndex];
-      }
-
-      socket.emit('submitNickname', selectedNickname);
+      socket.emit('submitNickname', '별');
     }
   });
 

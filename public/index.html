@@ -85,6 +85,13 @@
     pointer-events: auto;
   }
 
+  .admin-only {
+    display: none;
+  }
+  .admin-only.active {
+    display: inline-block;
+  }
+
   .target-select, .reset-btn, .fullscreen-btn, .delete-btn {
     background: #121a3a;
     color: var(--ink);
@@ -125,17 +132,17 @@
   </header>
 
   <main>
-    <div id="deleteBadge" class="delete-mode-badge">⚠️ 관리자 삭제 모드 ON (삭제할 별을 클릭하세요 - [D] 키로 해제)</div>
+    <div id="deleteBadge" class="delete-mode-badge">⚠️ 관리자 모드 (별 클릭 시 삭제 - [D] 키로 해제)</div>
     <canvas id="sky"></canvas>
 
     <div id="bottomControls" class="bottom-controls">
-      <select id="targetSelect" class="target-select">
+      <select id="targetSelect" class="target-select admin-only">
         <option value="100" selected>목표: 100명</option>
         <option value="200">목표: 200명</option>
         <option value="300">목표: 300명</option>
       </select>
-      <button id="deleteToggleBtn" class="delete-btn">별 삭제 모드 [D]</button>
-      <button id="resetBtn" class="reset-btn">초기화</button>
+      <button id="deleteToggleBtn" class="delete-btn admin-only">별 삭제 모드</button>
+      <button id="resetBtn" class="reset-btn admin-only">초기화</button>
       <button id="fullscreenBtn" class="fullscreen-btn">전체화면</button>
     </div>
   </main>
@@ -153,20 +160,27 @@
   const deleteToggleBtn = document.getElementById('deleteToggleBtn');
   const deleteBadge = document.getElementById('deleteBadge');
   const bottomControls = document.getElementById('bottomControls');
+  const adminElements = document.querySelectorAll('.admin-only');
 
-  const mapImg = new Image();
-  mapImg.src = '/map.jpg';
+  const qrElem = document.getElementById("qrcode");
+  if (qrElem) {
+    qrElem.innerHTML = '';
+    new QRCode(qrElem, {
+      text: `${window.location.origin}/mobile.html`,
+      width: 65,
+      height: 65
+    });
+  }
 
-  const leftBannerImg = new Image();
-  leftBannerImg.src = '/left_banner.jpg';
-
-  const rightBannerImg = new Image();
-  rightBannerImg.src = '/right_banner.jpg';
+  const mapImg = new Image(); mapImg.src = '/map.jpg';
+  const leftBannerImg = new Image(); leftBannerImg.src = '/left_banner.jpg';
+  const rightBannerImg = new Image(); rightBannerImg.src = '/right_banner.jpg';
 
   let W=0, H=0, dpr=1;
   let targetCount = parseInt(targetSelect.value, 10);
   let starsData = [];
   let pathPoints = [];
+  let isAdminMode = false;
   let isDeleteMode = false;
   let renderedStarCoords = [];
 
@@ -174,9 +188,23 @@
   const REF_H = 1600;
 
   const BAD_WORDS = [
-    '어묵', '창녕', '시체', '해상', '세월충', '좌빨', '북한',
+    '시체', '해상', '세월충', '좌빨', '북한',
     '이재명', '납골당', '그만해', '그만', '공산당', '그만해라', '싫어', '싫다', '싫어요'
   ];
+
+  const sampleNicknames = [
+    '노란리본', '기억', '함께하는길', '잊지않을게', '빛', 
+    '마음', '동행', '희망의빛', '영원한기억', '작은별빛', 
+    '함께걷기', '기억의숲', '노란물결', '빛나는길', '안산', 
+    '별빛걷기', '동행', '봄날', '햇살', '소중한기억', 
+    '함께하는삶', '밝은별빛', '평화의길', '진실의빛', '마음의길', 
+    '약속의별', '함께선날', '잊지않는맘', '온기', '노란빛', 
+    '이웃', '영원한봄', '기억할게', '0416', '화이팅', 
+    '약속의길', '함께할게요', '영원한별', '마음의별', '평화의마음', 
+    '기억의향기', '늘함께해', '봄을기억해', '빛의동행', '노란기억'
+  ];
+
+  let spaceClickCount = 0;
 
   function filterBadWords(text) {
     if (!text) return '별';
@@ -195,47 +223,76 @@
     bottomControls.classList.add('visible');
     clearTimeout(hideTimer);
     hideTimer = setTimeout(() => {
-      bottomControls.classList.remove('visible');
+      if (!isAdminMode) {
+        bottomControls.classList.remove('visible');
+      }
     }, 5000);
   }
 
   window.addEventListener('mousemove', showControls);
+  window.addEventListener('click', showControls);
 
-  function toggleDeleteMode() {
-    isDeleteMode = !isDeleteMode;
-    if (isDeleteMode) {
+  function toggleAdminMode() {
+    isAdminMode = !isAdminMode;
+    isDeleteMode = isAdminMode;
+
+    adminElements.forEach(el => {
+      if (isAdminMode) {
+        el.classList.add('active');
+      } else {
+        el.classList.remove('active');
+      }
+    });
+
+    if (isAdminMode) {
       deleteToggleBtn.classList.add('active');
       deleteBadge.classList.add('active');
       canvas.style.cursor = 'crosshair';
+      bottomControls.classList.add('visible');
     } else {
       deleteToggleBtn.classList.remove('active');
       deleteBadge.classList.remove('active');
       canvas.style.cursor = 'default';
+      showControls();
     }
   }
 
-  deleteToggleBtn.addEventListener('click', toggleDeleteMode);
+  deleteToggleBtn.addEventListener('click', () => {
+    isDeleteMode = !isDeleteMode;
+    deleteToggleBtn.classList.toggle('active', isDeleteMode);
+    canvas.style.cursor = isDeleteMode ? 'crosshair' : 'default';
+  });
 
   window.addEventListener('keydown', (e) => {
     if (e.code === 'KeyD' || e.code === 'Keyd') {
-      toggleDeleteMode();
+      toggleAdminMode();
     }
     if (e.code === 'Space') {
       e.preventDefault();
-      socket.emit('submitNickname', '별');
+      spaceClickCount++;
+
+      let selectedNickname = '';
+
+      if (spaceClickCount % 3 === 0) {
+        selectedNickname = '별';
+      } else {
+        const randomIndex = Math.floor(Math.random() * sampleNicknames.length);
+        selectedNickname = sampleNicknames[randomIndex];
+      }
+
+      socket.emit('submitNickname', selectedNickname);
     }
   });
 
-  // 별 클릭 및 삭제 판정 (인식범위 확대: 28px)
   canvas.addEventListener('click', (e) => {
-    if (!isDeleteMode) return;
+    if (!isAdminMode || !isDeleteMode) return;
 
     const rect = canvas.getBoundingClientRect();
     const clickX = e.clientX - rect.left;
     const clickY = e.clientY - rect.top;
 
     let targetStar = null;
-    let minDistance = 28; // 클릭 허용 범위 반경(px)
+    let minDistance = 28;
 
     for (let i = 0; i < renderedStarCoords.length; i++) {
       const star = renderedStarCoords[i];
@@ -254,29 +311,21 @@
     }
   });
 
-function generateRibbonPositions(n) {
+  function generateRibbonPositions(n) {
     const total = path.getTotalLength();
     const pts = [];
     
-    // 기본 경로 오프셋 설정 (기존 4px -> 최대 24px 지그재그 오프셋 확충)
     for (let i = 0; i < n; i++) {
       const t = (i / n) * total;
       const p = path.getPointAtLength(t);
-
-      // 별의 순번에 따라 좌/우(지그재그) 번갈아가며 위치를 분산시킵니다.
       const side = (i % 2 === 0) ? 1 : -1;
-      
-      // 개수가 많아질수록 지그재그 폭을 조절 (15px ~ 25px 사이 무작위 변주)
       const offsetDistance = (12 + Math.random() * 13) * side;
-      
-      // 경로상의 약간의 앞뒤 오차(±6px)와 좌우 지그재그 오프셋 적용
       const offX = offsetDistance + (Math.random() - 0.5) * 12;
       const offY = (Math.random() - 0.5) * 12;
 
       pts.push({ px: p.x + offX, py: p.y + offY });
     }
 
-    // 인원 추가에 따라 순차적으로 경로를 따라 차오르되, 약간의 랜덤 섞기 적용
     for (let i = pts.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [pts[i], pts[j]] = [pts[j], pts[i]];
@@ -317,11 +366,12 @@ function generateRibbonPositions(n) {
     star.phase = Math.random() * Math.PI * 2;
     star.twinkleSpeed = 0.02 + Math.random() * 0.02;
     star.spawnTime = isNew ? Date.now() : 0;
-    star.nickname = filterBadWords(star.nickname);
+    const rawName = star.nickname || star.name || '별';
+    star.nickname = filterBadWords(rawName);
   }
 
   socket.on('initStars', (serverStars) => {
-    starsData = serverStars;
+    starsData = serverStars || [];
     starsData.forEach(star => initStarAnimationProps(star, false));
     currentCountEl.textContent = starsData.length;
   });
@@ -335,6 +385,11 @@ function generateRibbonPositions(n) {
   socket.on('starDeleted', (deletedId) => {
     starsData = starsData.filter(s => s.id !== deletedId);
     currentCountEl.textContent = starsData.length;
+  });
+
+  socket.on('resetStars', () => {
+    starsData = [];
+    currentCountEl.textContent = 0;
   });
 
   function drawPointMarker(x, y, title, subTitle, pulseTime, align = 'center') {
@@ -463,7 +518,6 @@ function generateRibbonPositions(n) {
     ctx.fillText('빛의 길 ▶', (lightPathStartX + lightPathEndX) / 2 + 10, (lightPathStartY + lightPathEndY) / 2 + 18);
     ctx.restore();
 
-    // 1. 별빛 애니메이션 렌더링 (클릭 감지 데이터를 먼저 등록)
     starsData.forEach((star, index) => {
       if (index >= pathPoints.length) return;
       const pt = pathPoints[index];
@@ -499,7 +553,7 @@ function generateRibbonPositions(n) {
       ctx.arc(x, y, Math.max(0.1, coreR), 0, Math.PI * 2);
       ctx.fill();
 
-      if (isDeleteMode) {
+      if (isAdminMode && isDeleteMode) {
         ctx.strokeStyle = 'rgba(239, 68, 68, 0.8)';
         ctx.lineWidth = 1.5;
         ctx.beginPath();
@@ -516,7 +570,6 @@ function generateRibbonPositions(n) {
       ctx.shadowBlur = 0;
     });
 
-    // 2. 출발지점 / 도착지점 라벨 (별 뒤 레이어 간섭 방지)
     const startPt = path.getPointAtLength(path.getTotalLength());
     const endPt = path.getPointAtLength(0);
 
@@ -528,13 +581,9 @@ function generateRibbonPositions(n) {
 
   pathPoints = generateRibbonPositions(targetCount);
   resize();
+  showControls();
   requestAnimationFrame(draw);
 
-// 변경 후 코드
-const currentHost = window.location.origin;
-new QRCode(document.getElementById("qrcode"), {
-  text: `${currentHost}/mobile.html`, width: 70, height: 70
-});
 })();
 </script>
 </body>
